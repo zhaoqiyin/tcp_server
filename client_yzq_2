@@ -1,0 +1,72 @@
+//
+//  main.c
+//  client_yzq
+//
+//  Created by zhq.yin on 2017/4/6.
+//  Copyright © 2017年 HNA. All rights reserved.
+//
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <stdio.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <sys/shm.h>
+
+#define MYPORT 8887
+#define BUFF_SIZE 1024
+
+#define BUFFER_SIZE 40
+
+int main() {
+    // insert code here...
+    printf("Hello, World!\n");
+    
+    char buf[BUFFER_SIZE];
+    
+    int sock_client_fd = socket(AF_INET, SOCK_STREAM, 0);
+    
+    // 定义server socket
+    struct sockaddr_in server_addr;
+    memset(&server_addr, 0, sizeof(0));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(MYPORT);
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");    // 服务器ip    127.0.0.1是回送地址，指本地机，一般用来测试使用。
+    printf("789\n");
+    // 连接服务器
+    if (connect(sock_client_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        perror("connect");
+        exit(1);
+    }
+    while(1){
+    printf("Please input the message:\n");
+    
+    //发送消息
+    
+    scanf("%s",buf);
+    send(sock_client_fd,buf,BUFFER_SIZE,0);
+    //recv(sock_client_fd,buf,BUFFER_SIZE,0);  //接收消息
+   // printf("receive data from server: %s\n",buf);
+    }
+    // char sendbuff[BUFF_SIZE], recvbuff[BUFF_SIZE];
+     //while (fgets(sendbuff, sizeof(sendbuff), stdin) != NULL){
+      //  send(sock_client_fd, sendbuff, strlen(sendbuff), 0);        // 发送
+       //  if (strcmp(sendbuff, "exit\n") == 0) break;
+    
+       //  recv(sock_client_fd, recvbuff, sizeof(recvbuff), 0);
+        // printf("client received:%s", recvbuff);
+    
+      //   memset(recvbuff, 0, sizeof(recvbuff));
+      //   memset(sendbuff, 0, sizeof(sendbuff));
+     // }
+    
+     printf("yzq\n");
+    
+    close(sock_client_fd);
+    printf("abc\n");
+    return 0;
+}
