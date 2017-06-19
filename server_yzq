@@ -1,0 +1,174 @@
+//
+//  main.c
+//  server_yzq
+//
+//  Created by zhq.yin on 2017/4/6.
+//  Copyright © 2017年 HNA. All rights reserved.
+//
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/shm.h>
+
+#define QUEUE        20
+#define MYPORT        8887
+#define BUFF_SIZE    1024
+
+int client_fds;
+
+int main(int argc, const char * argv[]) {
+    // insert code here...
+    printf("123\n");
+
+    int server_sockfd = socket(AF_INET, SOCK_STREAM, 0);    // 定义socket fd
+    
+    int on=1;   // 设置套接字选项避免地址使用错误
+    if((setsockopt(server_sockfd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)))<0)
+    {
+        perror("setsockopt failed");
+        exit(EXIT_FAILURE);
+    }
+    
+    // 定义sockaddr_in
+    struct sockaddr_in server_sockaddr;
+    server_sockaddr.sin_family = AF_INET;
+    server_sockaddr.sin_port = htons(MYPORT);            // host to network short
+    server_sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);// host to network long
+    
+    
+    printf("Hello, World!\n");
+    
+    // bind socket address to socket fd
+    if (bind(server_sockfd, (struct sockaddr*)&server_sockaddr, sizeof(server_sockaddr)) == -1) {
+        perror("bind");
+        exit(1);
+    }
+
+    if (listen(server_sockfd, QUEUE) == -1) {
+        perror("listen");
+        exit(2);
+    }
+    
+    // 客户端套接字   client socket
+    char buff[BUFF_SIZE];
+    struct sockaddr_in client_addr;
+    socklen_t length = sizeof(client_addr);
+    
+    printf("con\n");
+
+    
+     //监听并返回客户端fd
+//    int conn = accept(server_sockfd, (struct sockaddr*)&client_addr, &length);
+//    if (conn < 0) {
+//        perror("accept");
+//        exit(3);
+//}
+ //   printf("abc\n");
+    
+    //fd_set
+    fd_set server_fd_set;
+    int max_fd = -1;
+    struct timeval tv;  //超时时间设置
+    
+    int i=0;
+    while (1) {
+        tv.tv_sec = 20;     //20秒
+        tv.tv_usec = 0;     //0毫秒
+        FD_ZERO(&server_fd_set);    //清除一个文件描述符集
+        FD_SET(STDIN_FILENO, &server_fd_set);   //将一个文件描述符加入文件描述符集中
+        printf("STDIN_FILENO = %d\n", STDIN_FILENO);
+        
+        //服务器端socket
+        FD_SET(server_sockfd, &server_fd_set);
+        //printf("server_sockfd=%d\n", server_sockfd);
+        if(max_fd < server_sockfd)
+        {
+            max_fd = server_sockfd;
+        }
+        printf("max_fd = %d\n", max_fd);
+        
+        //客户端连接
+        if(client_fds != 0)
+        {
+            FD_SET(client_fds, &server_fd_set);
+            if(max_fd < client_fds)
+            {
+                max_fd = client_fds;
+            }
+        }
+        printf("max_fd2 = %d\n", max_fd);
+        
+        int ret = select(max_fd + 1, &server_fd_set, NULL, NULL, &tv);  //返回：做好准备的文件描述符的个数，超时为0，错误为 -1.
+        
+        printf("ret = %d\n", ret);
+        
+        if(ret < 0)
+        {
+            perror("select 出错\n");
+            continue;
+        }
+        else if(ret == 0)
+        {
+            printf("select 超时\n");
+            continue;
+        }
+        else{
+            if(FD_ISSET(server_sockfd, &server_fd_set))
+            {
+            //监听并返回客户端fd
+            int conn = accept(server_sockfd, (struct sockaddr*)&client_addr, &length);
+            if (conn < 0) {
+                perror("accept");
+                exit(3);
+            }
+            printf("conn = %d\n", conn);
+            //printf("456789\n");
+              printf("client_fds = %d\n", client_fds);
+                //printf("server_sockfd = %d\n", server_sockfd);
+            
+                if(server_sockfd > 0)
+                {
+                        if(client_fds == 0)
+                        {
+                            client_fds = conn;
+ //                           break;
+                        }
+                    }
+            }
+         printf("server_sockfd = %d\n", server_sockfd);
+        if(FD_ISSET(client_fds, &server_fd_set))
+        {
+        memset(buff, 0, sizeof(buff));
+        long len = recv(client_fds, buff, sizeof(buff), 0);
+    
+       //if (strcmp(buff, "exit\n") == 0)
+         //   break;
+        
+        printf("server received:%s\n", buff);
+        
+        while(i<100){   //延迟一段时间，让printf打印在显示器上
+            i++;
+        }
+        
+        send(client_fds, buff, len, 0);
+            printf("456789\n");
+    
+    }
+    }
+    }
+   // printf("abc123456789\n");
+    
+    //close(conn);
+    
+    
+    close(server_sockfd);
+    
+    return 0;
+}
